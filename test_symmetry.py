@@ -157,13 +157,13 @@ if try_l_h2o:
     # r_matrices.append(r)
 
     #Spin symmetry:
-    r = np.zeros((14, 14))
-    for i in range(14):
-        if i < 7:
-            r[i+7,i]= 1.
-        else:
-            r[i-7,i] = 1.
-    r_matrices.append(r)
+    # r = np.zeros((14, 14))
+    # for i in range(14):
+    #     if i < 7:
+    #         r[i+7,i]= 1.
+    #     else:
+    #         r[i-7,i] = 1.
+    # r_matrices.append(r)
 
 if try_h2:
     # atom = 'H 0 0 0; H 0 0 .7414'
@@ -245,18 +245,24 @@ if __name__ == '__main__':
     ref_min_eigvals = ee_result['eigvals'][0]
 
     print("Trying to tapering")
-
-    for taper_coeff in itertools.product([1, -1], repeat=len(single_qubit_list) - 1):
-        tapered_qubit_op = Operator.qubit_tapering(v_qubit_op, cliffords[:-1], single_qubit_list[:-1], list(taper_coeff))
+    correct_sector = None
+    for taper_coeff in itertools.product([1, -1], repeat=len(single_qubit_list)):
+        tapered_qubit_op = Operator.qubit_tapering(v_qubit_op, cliffords, single_qubit_list, list(taper_coeff))
         ee = ExactEigensolver(tapered_qubit_op, k=1)
         ee_result = ee.run()
-        temp_min_eigvals = ee_result['eigvals'][0].real
-        print("at sector {}: eig value: {}; reference: {}".format(list(taper_coeff), temp_min_eigvals, ref_min_eigvals.real))
+        temp_min_eigvals = ee_result['eigvals'][0]
+        if np.isclose(temp_min_eigvals, ref_min_eigvals, rtol=1e-8):
+            correct_sector = list(taper_coeff)
+        # print("at sector {}: eig value: {}; reference: {}".format(list(taper_coeff), temp_min_eigvals, ref_min_eigvals.real))
+
+    if correct_sector:
+        print("Correct sector is {}.".format(correct_sector))
+    else:
+        print("None of sectors is correct.")
 
     ee = ExactEigensolver(v_qubit_op, k=1)
     ee_result = ee.run()
     temp_min_eigvals = ee_result['eigvals'][0]
     is_min_eig_close = np.isclose(ref_min_eigvals, temp_min_eigvals)
-    print(temp_min_eigvals.real)
     print("after transformed by v matrix, the min eig is {} identical.".format("" if is_min_eig_close else "NOT"))
 
