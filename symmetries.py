@@ -46,18 +46,20 @@ def find_symmetry_ops(r_matrices):
     single_qubit_list = []
     cliffords = []
     pauli_symmetries = []
+    existed_pi_locs = []
     for d_idx in range(len(d_matrices)):
         pi_index = np.where(np.isclose(d_matrices[d_idx], np.pi))[0]
         single_qubit_pauli = ['I'] * modes
         pi_loc = 0
         for i in pi_index:
-            if i not in single_qubit_list:
+            if i not in existed_pi_locs:
                 pi_loc = i
-                single_qubit_list.append(pi_loc)
+                existed_pi_locs.extend(pi_index.tolist())
                 break
         single_qubit_pauli[pi_loc] = 'X'
         single_qubit_pauli = ''.join(single_qubit_pauli)
         single_qubit_op = Operator(paulis=[[1.0, Pauli.from_label(single_qubit_pauli[::-1])]])
+        single_qubit_list.append(pi_loc)
         symmetries_pauli_label = ''
         for i in range(modes):
             symmetries_pauli_label += 'I' if i not in pi_index else 'Z'
