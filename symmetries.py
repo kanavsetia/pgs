@@ -49,10 +49,15 @@ def find_symmetry_ops(r_matrices):
     for d_idx in range(len(d_matrices)):
         pi_index = np.where(np.isclose(d_matrices[d_idx], np.pi))[0]
         single_qubit_pauli = ['I'] * modes
-        single_qubit_pauli[pi_index[0]] = 'X'
+        pi_loc = 0
+        for i in pi_index:
+            if i not in single_qubit_list:
+                pi_loc = i
+                single_qubit_list.append(pi_loc)
+                break
+        single_qubit_pauli[pi_loc] = 'X'
         single_qubit_pauli = ''.join(single_qubit_pauli)
         single_qubit_op = Operator(paulis=[[1.0, Pauli.from_label(single_qubit_pauli[::-1])]])
-        single_qubit_list.append(pi_index[0])
         symmetries_pauli_label = ''
         for i in range(modes):
             symmetries_pauli_label += 'I' if i not in pi_index else 'Z'
