@@ -10,7 +10,7 @@ from pyscf import gto
 from pyscf.scf.hf import get_ovlp
 import scipy
 
-from qiskit.chemistry.mole_geo_symmetry.symmetries import find_symmetry_ops
+from symmetries import find_symmetry_ops
 
 r_matrices = []
 
