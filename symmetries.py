@@ -40,7 +40,9 @@ def find_symmetry_ops(r_matrices):
 
     # check the build d_matrix
     for eig in d_matrices.flatten():
+        print(eig)
         if not (np.isclose(eig, 0.0) or np.isclose(eig, np.pi)):
+            # print(np.where(d_matrices.flatten()==eig))
             raise ValueError('The specified R matrix is invalid. \
                                         Eigenvalues of G includes: {}'.format(eig))
     single_qubit_list = []
