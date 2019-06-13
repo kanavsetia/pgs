@@ -6,7 +6,7 @@ from scipy import linalg as scila
 from qiskit.aqua import Operator
 import qutip as qt
 from qiskit.quantum_info import Pauli
-
+import pdb
 
 def find_symmetry_ops(r_matrices):
     """
@@ -49,6 +49,7 @@ def find_symmetry_ops(r_matrices):
     cliffords = []
     pauli_symmetries = []
     existed_pi_locs = []
+    # pdb.set_trace()
     for d_idx in range(len(d_matrices)):
         pi_index = np.where(np.isclose(d_matrices[d_idx], np.pi))[0]
         single_qubit_pauli = ['I'] * modes
@@ -71,5 +72,5 @@ def find_symmetry_ops(r_matrices):
         clifford_op = single_qubit_op + symmetries_op
         clifford_op.scaling_coeff(1.0 / np.sqrt(2))
         cliffords.append(clifford_op)
-
+    
     return v_matrix, pauli_symmetries, cliffords, single_qubit_list

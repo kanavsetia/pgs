@@ -7,6 +7,7 @@ Created on Sun Dec  2 14:46:51 2018
 import logging
 import copy
 import itertools
+from qiskit.quantum_info import Pauli
 from pyscf import gto, scf, ao2mo
 from pyscf.lib import param
 from scipy import linalg as scila
@@ -21,26 +22,9 @@ from symmetries import find_symmetry_ops
 from qiskit.chemistry import FermionicOperator
 logger = logging.getLogger(__name__)
 import int_func
+# from taper_qubits_rm_funcs import r_mat_funcs as np.set_printoptions(linewidth=230,suppress=True,precision=3,threshold=5000)
 
-np.set_printoptions(linewidth=230,suppress=True,precision=3,threshold=5000)
-
-def check_r_mat(r_matrices, fer_op, one_b, two_b):
-	r_true = 0
-	for r in r_matrices:
-		fer_op.transform(r)
-		# print(MoleculeFlag)
-		if np.all(np.abs(fer_op.h1-one_b)<1.e-12) and np.all(np.abs(fer_op.h2-two_b)<1.e-12) and np.linalg.norm(fer_op.h2-two_b)<1.e-12:
-			r_true+=1
-			print('True')
-		else:
-			print(r)
-			print("The above r matrix does not work!")
-	# print(r_true==1)
-	return (r_true==len(r_matrices))
-
-
-
-def mol_r_matrices(MoleculeFlag):
+def mol_r_matrices(MoleculeFlag,check_r_matrix_flag):
 
 	mol = gto.Mole()
 
@@ -50,11 +34,20 @@ def mol_r_matrices(MoleculeFlag):
 
 	if MoleculeFlag == 'H2':
 		r_matrices=[]
-		mol = gto.M(atom='H 0 0 -0.3707; H 0 0 .3707', basis='sto-3g')
-		mol.build()
-		_q_=int_func.qmol_func(mol, atomic=True)
-		fer_op = FermionicOperator(h1=_q_.one_body_integrals, h2=_q_.two_body_integrals)
+		try:
+			data = np.load(MoleculeFlag+'.npz')
+			one_b = data['one_b']
+			two_b = data['two_b']
+		except IOError:
+			mol.atom = [['H',(0, 0, -0.3707)], ['H',(0,0.0,0.3707)]]
+			mol.basis = 'sto-3g'
+			mol.build()
+			_q_=int_func.qmol_func(mol, atomic=True)
+			one_b=_q_.one_body_integrals
+			two_b=_q_.two_body_integrals
+			np.savez(MoleculeFlag+'.npz',one_b=_q_.one_body_integrals,two_b=_q_.two_body_integrals)
 
+		fer_op = FermionicOperator(h1=one_b, h2=two_b)
 		# Defining R-matrix --> r
 		# Swapping the spatial orbitals. This involves swapping both the spin orbitals corresponding to a spatial orbital.
 		# This could be treated as a reflection symmetry or rotational symmetry.
@@ -74,10 +67,10 @@ def mol_r_matrices(MoleculeFlag):
 		
 		r_matrices.append(r1)
 		r_matrices.append(r2)
-		check_r_mat(r_matrices,fer_op,_q_)
-		# print(np.all(np.abs(fer_op.h1-_q_.one_body_integrals)<1.e-14))
-		# print(np.all(np.abs(fer_op.h2-_q_.two_body_integrals)<1.e-14))
-		
+		if check_r_matrix_flag:
+			if bool(check_r_mat(r_matrices,fer_op,one_b,two_b)):
+				print('All the above matrices work!')
+
 
 	#=================================
 	# Water molecule (with different basis sets)
@@ -85,16 +78,14 @@ def mol_r_matrices(MoleculeFlag):
 
 	elif MoleculeFlag== 'H2O_L':
 		r_matrices = []
-		# print(MoleculeFlag)
+		print(MoleculeFlag)
 		# Configuration from 
 		# mol.atom = [['O',(0.8638, 0.4573,0.0)], ['H',(0, 0, 0)], ['H',(1.7785,0.0,0.0)]]
 		# mol.atom = [['O',(0.0, 0.0,0.0)],['H',(1, 0, 0)], ['H',(-1.0,0.0,0.0)]]
 		#mol.atom = [['O',(0, 0, 0)], ['H',(0, 1, 0)], ['H@2',(0, 0, 1)]]
-		# mol.basis = 'sto-3g'
 		#mol.basis = {'O': 'sto-3g', 'H': 'cc-pvdz', 'H@2': '6-31G'}
 		try:
 			data = np.load(MoleculeFlag+'.npz')
-			data.files
 			one_b = data['one_b']
 			two_b = data['two_b']
 		except IOError:
@@ -167,7 +158,7 @@ def mol_r_matrices(MoleculeFlag):
 		r4[11,11]=1
 		r4[12,13]=1
 		r4[13,12]=1
-		# r_matrices.append(r4)
+		r_matrices.append(r4)
 		#About y-axis
 		r5=np.zeros([14,14])
 		r5[0,0]=1
@@ -184,7 +175,7 @@ def mol_r_matrices(MoleculeFlag):
 		r5[11,11]=-1
 		r5[12,13]=1
 		r5[13,12]=1
-		# r_matrices.append(r5)
+		r_matrices.append(r5)
 		#Symmetry about x-axis:
 		r6=np.zeros([14,14])
 		r6[0,0]=1
@@ -201,27 +192,19 @@ def mol_r_matrices(MoleculeFlag):
 		r6[11,11]=-1
 		r6[12,12]=1
 		r6[13,13]=1
-		# r_matrices.append(r6)
+		r_matrices.append(r6)
 		
 		#Spin symmetry:
 		r7=np.zeros([14,14])
 		for i in range(14):
-		   if i<7:
-		       r7[i+7,i]=1.
-		   else:
-		       r7[i-7,i]=1.
-		# r_matrices.append(r7)
-		# print(np.real(fer_op.h1[0:int(np.size(fer_op.h1,0)/2),0:int(np.size(fer_op.h1,0)/2)]))
-		# fer_op.transform(r1)
-		# print(np.real(fer_op.h1[0:int(np.size(fer_op.h1,0)/2),0:int(np.size(fer_op.h1,0)/2)]))
-		# # print(_q_._one_body_integrals)
-		# print(MoleculeFlag)
-		# print(np.all(np.abs(fer_op.h1-_q_.one_body_integrals)<1.e-16))
-		# print(np.all(np.abs(fer_op.h2-_q_.two_body_integrals)<1.e-16))
-		# print(np.linalg.norm(fer_op.h2-_q_.two_body_integrals))
-
-		# if bool(check_r_mat(r_matrices,fer_op,one_b,two_b)):
-		# 	print('All the above matrices work!')
+			if i<7:
+				r7[i+7,i]=1.
+			else:
+				r7[i-7,i]=1.
+		r_matrices.append(r7)
+		if check_r_matrix_flag:
+			if bool(check_r_mat(r_matrices,fer_op,one_b,two_b)):
+				print('All the above matrices work!')
 
 	#=================================
 	# Water molecule (with different basis sets)
@@ -233,7 +216,6 @@ def mol_r_matrices(MoleculeFlag):
 		# Configuration from 
 		try:
 			data = np.load(MoleculeFlag+'.npz')
-			data.files
 			one_b = data['one_b']
 			two_b = data['two_b']
 		except IOError:
@@ -249,7 +231,6 @@ def mol_r_matrices(MoleculeFlag):
 
 		fer_op = FermionicOperator(h1=one_b, h2=two_b)
 		
-
 		#mol.atom = [['O',(0, 0, 0)], ['H',(0, 1, 0)], ['H@2',(0, 0, 1)]]
 		#mol.basis = {'O': 'sto-3g', 'H': 'cc-pvdz', 'H@2': '6-31G'}
 		# mol.build()
@@ -260,10 +241,10 @@ def mol_r_matrices(MoleculeFlag):
 		#Spin symmetry:
 		r1=np.zeros([14,14])
 		for i in range(14):
-		   if i<7:
-		       r1[i+7,i]=1.
-		   else:
-		       r1[i-7,i]=1.
+			if i<7:
+				r1[i+7,i]=1.
+			else:
+				r1[i-7,i]=1.
 		# r_matrices.append(r1)
 		# R-matrix for plane of symmetry \sigma_{xy}. Everything remains the same, only pz-orbitals pick up negative sign.
 		r2=np.eye(14)
@@ -301,19 +282,18 @@ def mol_r_matrices(MoleculeFlag):
 		r4[12,13]=1
 		r4[13,12]=1
 		r_matrices.append(r4)
-
-		if bool(check_r_mat(r_matrices,fer_op,one_b,two_b)):
-			print('All the above matrices work!')
+		if check_r_matrix_flag:
+			if bool(check_r_mat(r_matrices,fer_op,one_b,two_b)):
+				print('All the above matrices work!')
 
 	#=================================
 		# Ammonia molecule
 	#=================================
 
 	elif MoleculeFlag=='NH3':
-
+		print(MoleculeFlag)
 		try:
 			data = np.load(MoleculeFlag+'.npz')
-			data.files
 			one_b = data['one_b']
 			two_b = data['two_b']
 		except IOError:
@@ -330,9 +310,7 @@ def mol_r_matrices(MoleculeFlag):
 
 		fer_op = FermionicOperator(h1=one_b, h2=two_b)
 		
-
 		r_matrices=[]
-		print(MoleculeFlag)
 		
 		# mol.atom = [['N', (0.0000,  0.0000, 0.0000)],   
 		# 			['H', (-0.4417, 0.2906, 0.8711)],  
@@ -369,31 +347,11 @@ def mol_r_matrices(MoleculeFlag):
 		#Spin symmetry:
 		r1=np.zeros([16,16])
 		for i in range(16):
-		   if i<8:
-		       r1[i+8,i]=1.
-		   else:
-		       r1[i-8,i]=1.
+			if i<8:
+				r1[i+8,i]=1.
+			else:
+				r1[i-8,i]=1.
 		r_matrices.append(r1)
-		# R-matrix for plane of symmetry \sigma_{xy}. Everything remains the same, only pz-orbitals pick up negative sign. 
-		# This is present only in the 2d configuration of the molecule. (worked with the first geometry)
-		r2=np.zeros([16,16])
-		r2[0,0]=1
-		r2[1,1]=1
-		r2[2,2]=1
-		r2[3,3]=1
-		r2[4,4]=-1
-		r2[5,5]=1
-		r2[6,6]=1
-		r2[7,7]=1
-		r2[8,8]=1
-		r2[9,9]=1
-		r2[10,10]=1
-		r2[11,11]=1
-		r2[12,12]=-1
-		r2[13,13]=1
-		r2[14,14]=1
-		r2[15,15]=1
-		# r_matrices.append(r2)
 		# R-matrix for plane of symmetry \sigma_{yz}. Two hydrogen atoms are swapped and the px orbital picks up
 		# a negative sign. 
 		r3=np.zeros([16,16])
@@ -414,16 +372,16 @@ def mol_r_matrices(MoleculeFlag):
 		r3[14,15]=1
 		r3[15,14]=1
 		r_matrices.append(r3)
-		r4 = np.eye(16)
-		r4[5,5]=r4[6,6]=0
-		r4[5,6]=r4[6,5]=1
-		r4[13,13]=r4[14,14]=0
-		r4[13,14]=r4[14,13]=1
-		r4[2,2]=r4[3,3]=0
-		r4[2,3]=r4[3,2]=-1
-		r4[10,10]=r4[11,11]=0
-		r4[10,11]=r4[11,10]=-1
-		r_matrices.append(r4)
+		# r4 = np.eye(16)
+		# r4[5,5]=r4[6,6]=0
+		# r4[5,6]=r4[6,5]=1
+		# r4[13,13]=r4[14,14]=0
+		# r4[13,14]=r4[14,13]=1
+		# r4[2,2]=r4[3,3]=0
+		# r4[2,3]=r4[3,2]=-1
+		# r4[10,10]=r4[11,11]=0
+		# r4[10,11]=r4[11,10]=-1
+		# r_matrices.append(r4)
 
 		# x=(np.eye(3)+rot_mat_vec+np.matmul(rot_mat_vec,rot_mat_vec))/3
 		# print(np.matmul(x.transpose(),x))
@@ -447,8 +405,9 @@ def mol_r_matrices(MoleculeFlag):
 		# print(np.all(np.abs(fer_op.h1-_q_.one_body_integrals)<1.e-14))
 		# print(np.all(np.abs(fer_op.h2-_q_.two_body_integrals)<1.e-14))
 		# print(np.linalg.norm(fer_op.h2-_q_.two_body_integrals))
-		if bool(check_r_mat(r_matrices,fer_op,one_b,two_b)):
-			print('All the above matrices work!')
+		if check_r_matrix_flag:
+			if bool(check_r_mat(r_matrices,fer_op,one_b,two_b)):
+				print('All the above matrices work!')
 	#=================================
 		# Methane molecule
 	#=================================
@@ -481,13 +440,9 @@ def mol_r_matrices(MoleculeFlag):
 			else:
 				r1[i-9,i]=1.
 		
-		fer_op.transform(r)
-		# print(_q_._one_body_integrals.round(3))
-		print(MoleculeFlag)
-		print(np.all(np.abs(fer_op.h1-_q_.one_body_integrals)<1.e-14))
-		print(np.all(np.abs(fer_op.h2-_q_.two_body_integrals)<1.e-14))
-		print(np.linalg.norm(fer_op.h2-_q_.two_body_integrals))
-
+		if check_r_matrix_flag:
+			if bool(check_r_mat(r_matrices,fer_op,one_b,two_b)):
+				print('All the above matrices work!')
 	#=================================
 		# Oxygen molecule
 	#=================================
@@ -509,13 +464,10 @@ def mol_r_matrices(MoleculeFlag):
 			else:
 				r1[i-5,i]=1.
 
-
 		fer_op.transform(r1)
-		# print(_q_._one_body_integrals.round(3))
-		print(MoleculeFlag)
-		print(np.all(np.abs(fer_op.h1-_q_.one_body_integrals)<1.e-14))
-		print(np.all(np.abs(fer_op.h2-_q_.two_body_integrals)<1.e-14))
-		print(np.linalg.norm(fer_op.h2-_q_.two_body_integrals))	
+		if check_r_matrix_flag:
+			if bool(check_r_mat(r_matrices,fer_op,one_b,two_b)):
+				print('All the above matrices work!')
 
 	#=================================
 		# Carbon dioxide molecule
@@ -650,8 +602,9 @@ def mol_r_matrices(MoleculeFlag):
 		# print(np.all(np.abs(fer_op.h1-_q_.one_body_integrals)<1.e-14))
 		# print(np.all(np.abs(fer_op.h2-_q_.two_body_integrals)<1.e-14))
 		# print(np.linalg.norm(fer_op.h2-_q_.two_body_integrals))
-		if bool(check_r_mat(r_matrices,fer_op,one_b,two_b)):
-			print('All the above matrices work!')
+		if check_r_matrix_flag:
+			if bool(check_r_mat(r_matrices,fer_op,one_b,two_b)):
+				print('All the above matrices work!')
 	#=================================
 		# Ethyne molecule
 	#=================================
@@ -682,10 +635,10 @@ def mol_r_matrices(MoleculeFlag):
 		# Spin symmetry:
 		r1=np.zeros([24,24])
 		for i in range(24):
-		   if i<12:
-		       r1[i+12,i]=1.
-		   else:
-		       r1[i-12,i]=1.
+			if i<12:
+				r1[i+12,i]=1.
+			else:
+				r1[i-12,i]=1.
 		# r_matrices.append(r1)
 		# R-matrix for plane of symmetry \sigma_{xy}. Everything remains the same, only pz-orbitals pick up negative sign. 
 		r2=np.eye(24)
@@ -762,45 +715,50 @@ def mol_r_matrices(MoleculeFlag):
 		r7[15,15]=-1
 		r7[20,20]=-1
 		r7[21,21]=-1
-		# r_matrices.append(r7)
-		# r_matrices.append(r6)
-		# r_matrices.append(r5)
+		r_matrices.append(r7)
+		r_matrices.append(r6)
+		r_matrices.append(r5)
 		r_matrices.append(r2)
 		r_matrices.append(r3)
 		r_matrices.append(r4)
-		# r_matrices.append(r1)
-
-		# fer_op.transform(r7)
-		# # print(_q_._one_body_integrals.round(3))
-		# print(MoleculeFlag)
-		# print(np.all(np.abs(fer_op.h1-_q_.one_body_integrals)<1.e-14))
-		# print(np.all(np.abs(fer_op.h2-_q_.two_body_integrals)<1.e-14))
-		# print(np.linalg.norm(fer_op.h2-_q_.two_body_integrals))
-		# if bool(check_r_mat(r_matrices,fer_op,one_b,two_b)):
-		# 	print('All the above matrices work!')
+		r_matrices.append(r1)
+		if check_r_matrix_flag:
+			if bool(check_r_mat(r_matrices,fer_op,one_b,two_b)):
+				print('All the above matrices work!')
 	#=================================
 		# Boron trifluoride molecule
 	#=================================
 
 	elif MoleculeFlag == 'BF3':
 		r_matrices = []
-		mol.atom = [['B',(0.0000	,0.0000	,0.000000 )], 
+		
+		try:
+			data = np.load(MoleculeFlag+'.npz')
+			one_b = data['one_b']
+			two_b = data['two_b']
+		except IOError:
+			mol.atom = [['B',(0.0000	,0.0000	,0.000000 )], 
 					['F',(0.0000	,1.3070	,0.00000 )],
 					['F',(1.1319	,-0.6535,	0.000 )],
 					['F',(-1.1319	,-0.6535,	0.00)]]
+			mol.basis = 'sto-3g'
+			mol.build()
+			_q_=int_func.qmol_func(mol, atomic=True)
+			one_b=_q_.one_body_integrals
+			two_b=_q_.two_body_integrals
+			np.savez(MoleculeFlag+'.npz',one_b=_q_.one_body_integrals,two_b=_q_.two_body_integrals)
 
-		mol.build()
-		_q_=int_func.qmol_func(mol, atomic=True)
-		fer_op = FermionicOperator(h1=_q_.one_body_integrals, h2=_q_.two_body_integrals)
-		print(np.size(_q_.one_body_integrals,0))
-
+		fer_op = FermionicOperator(h1=one_b, h2=two_b)
+		
+		
+		
 		# Spin symmetry:
 		r1=np.zeros([40,40])
 		for i in range(40):
-		   if i<20:
-		       r1[i+20,i]=1.
-		   else:
-		       r1[i-20,i]=1.
+			if i<20:
+				r1[i+20,i]=1.
+			else:
+				r1[i-20,i]=1.
 		r_matrices.append(r1)
 		# R-matrix for plane of symmetry \sigma_{xy}. Everything remains the same, only pz-orbitals pick up negative sign. 
 		r2=np.eye(40)
@@ -928,8 +886,15 @@ def mol_r_matrices(MoleculeFlag):
 		# print(np.all(np.abs(fer_op.h1-_q_.one_body_integrals)<1.e-14))
 		# print(np.all(np.abs(fer_op.h2-_q_.two_body_integrals)<1.e-14))
 		# print(np.linalg.norm(fer_op.h2-_q_.two_body_integrals))
-		if bool(check_r_mat(r_matrices,fer_op,one_b,two_b)):
-			print('All the above matrices work!')
+		if check_r_matrix_flag:
+			if bool(check_r_mat(r_matrices,fer_op,one_b,two_b)):
+				print('All the above matrices work!')
+	
+#=================================
+	# Lithium hydride
+#=================================
+
+
 	elif MoleculeFlag == "LiH":
 		r_matrices =[]
 		print(MoleculeFlag)
@@ -954,13 +919,28 @@ def mol_r_matrices(MoleculeFlag):
 		# Spin symmetry:
 		r1=np.zeros([12,12])
 		for i in range(12):
-		   if i<6:
-		       r1[i+6,i]=1.
-		   else:
-		       r1[i-6,i]=1.
+			if i<6:
+				r1[i+6,i]=1.
+			else:
+				r1[i-6,i]=1.
 		r_matrices.append(r1)
+		# sigma{xy}
+		r2 = np.eye(12)
+		r2[4,4]=-1
+		r2[10,10]=-1
+		r_matrices.append(r2)
+
+		#sigma(yz)
+		r3 = np.eye(12)
+		r3[3,3]=-1
+		r3[9,9]=-1
+		r_matrices.append(r3)
 		if bool(check_r_mat(r_matrices,fer_op,one_b,two_b)):
 			print('All the above matrices work!')
+#=================================
+	# Beryllium hydride
+#=================================
+	
 	elif MoleculeFlag == "BeH2":
 		r_matrices =[]
 		print(MoleculeFlag)
@@ -1078,89 +1058,33 @@ def mol_r_matrices(MoleculeFlag):
 		#Spin symmetry:
 		r7=np.zeros([14,14])
 		for i in range(14):
-		   if i<7:
-		       r7[i+7,i]=1.
-		   else:
-		       r7[i-7,i]=1.
+			if i<7:
+				r7[i+7,i]=1.
+			else:
+				r7[i-7,i]=1.
 		r_matrices.append(r7)
-		# print(np.real(fer_op.h1[0:int(np.size(fer_op.h1,0)/2),0:int(np.size(fer_op.h1,0)/2)]))
-		# fer_op.transform(r1)
-		# print(np.real(fer_op.h1[0:int(np.size(fer_op.h1,0)/2),0:int(np.size(fer_op.h1,0)/2)]))
-		# # print(_q_._one_body_integrals)
-		# print(MoleculeFlag)
-		# print(np.all(np.abs(fer_op.h1-_q_.one_body_integrals)<1.e-16))
-		# print(np.all(np.abs(fer_op.h2-_q_.two_body_integrals)<1.e-16))
-		# print(np.linalg.norm(fer_op.h2-_q_.two_body_integrals))
-
 		if bool(check_r_mat(r_matrices,fer_op,one_b,two_b)):
 			print('All the above matrices work!')
 
 	return [r_matrices,fer_op]
 
+def check_r_mat(r_matrices, fer_op, one_b, two_b):
+		r_true = 0
+		for r in r_matrices:
+			temp_fo = copy.deepcopy(fer_op)
+			temp_fo.transform(r)
+			if np.all(np.abs(temp_fo.h1-one_b)<1.e-12) and np.all(np.abs(temp_fo.h2-two_b)<1.e-12) and np.linalg.norm(temp_fo.h2-two_b)<1.e-12:
+				r_true+=1
+				print('True')
+			else:
+				print(r)
+				print("The above r matrix does not work!")
+		return (r_true==len(r_matrices))
+
 def check_commute(op1, op2):
-    op3 = op1 * op2 - op2 * op1
-    op3.zeros_coeff_elimination()
-    return op3.is_empty()
-
-MoleculeFlag = 'NH3'
-[r_matrices,fer_op]=mol_r_matrices(MoleculeFlag)
-# print(r_matrices)
-
-# r_matrices = r_mats.mol_r_matrices('BF3')
-
-
-ref_op = fer_op.mapping('jordan_wigner')
-
-v_matrix, pauli_symmetries, cliffords, single_qubit_list = find_symmetry_ops(r_matrices)
-print("single_qubit_list: {}".format(single_qubit_list))
-print(v_matrix)
-print("checking the v matrix...")
-is_identity = np.allclose(np.dot(v_matrix, v_matrix.conj().T), np.identity(fer_op.modes))
-print("v matrix is {} unitary.".format("" if is_identity else "NOT"))
-temp_fer_op = copy.deepcopy(fer_op)
-temp_fer_op.transform(v_matrix)
-v_qubit_op = temp_fer_op.mapping(map_type='jordan_wigner')
-print("check the commutativity of the found symmetry paulis between H'.")
-for symm in pauli_symmetries:
-	symm_op = Operator(paulis=[[1.0, symm]])
-	is_commuted = check_commute(symm_op, v_qubit_op)
-	print(symm_op.print_operators())
-	print("symm is {} commuted.".format("" if is_commuted else "NOT"))
-
-print("check the commutativity of found symmetry paulis each other.")
-for i in range(len(pauli_symmetries)):
-	for j in range(i):
-		symm_op_i = Operator(paulis=[[1.0, pauli_symmetries[i]]])
-		symm_op_j = Operator(paulis=[[1.0, pauli_symmetries[j]]])
-		is_commuted = check_commute(symm_op_i, symm_op_j)
-		print("symm ({}, {}) is {} commuted.".format(i, j, "" if is_commuted else "NOT"))
-
-# ee = ExactEigensolver(ref_op, k=1)
-# ee_result = ee.run()
-# ref_min_eigvals = ee_result['eigvals'][0]
-
-print("Trying to tapering")
-correct_sector = None
-for taper_coeff in itertools.product([1, -1], repeat=len(single_qubit_list)):
-	tapered_qubit_op = Operator.qubit_tapering(v_qubit_op, cliffords, single_qubit_list, list(taper_coeff))
-	# tapered_qubit_op.print
-# 	ee = ExactEigensolver(tapered_qubit_op, k=1)
-# 	ee_result = ee.run()
-# 	temp_min_eigvals = ee_result['eigvals'][0]
-# 	if np.isclose(temp_min_eigvals, ref_min_eigvals, rtol=1e-8):
-# 		correct_sector = list(taper_coeff)
-# 	print("at sector {}: eig value: {}; reference: {}".format(list(taper_coeff), temp_min_eigvals, ref_min_eigvals.real))
-
-# if correct_sector:
-# 	print("Correct sector is {}.".format(correct_sector))
-# else:
-# 	print("None of sectors is correct.")
-
-# ee = ExactEigensolver(v_qubit_op, k=1)
-# ee_result = ee.run()
-# temp_min_eigvals = ee_result['eigvals'][0]
-# is_min_eig_close = np.isclose(ref_min_eigvals, temp_min_eigvals)
-# print("after transformed by v matrix, the min eig is {} identical.".format("" if is_min_eig_close else "NOT"))
+		op3 = op1 * op2 - op2 * op1
+		op3.zeros_coeff_elimination()
+		return op3.is_empty()
 
 
 
@@ -1170,22 +1094,121 @@ for taper_coeff in itertools.product([1, -1], repeat=len(single_qubit_list)):
 
 
 
-#
-#g_matrix = -1j * scila.logm(r)
-##print(g_matrix.real.round(3))
-#eigval_v,eigvec_v=np.linalg.eig(g_matrix)
-##print(eigvec_v,3)
-#print(np.dot(eigvec_v.conjugate().transpose(),eigvec_v).round(2))
 
-#s=np.dot(np.dot(eigvec_v.transpose(),g_matrix),eigvec_v)
-#print(s.real.round(3))
-#fer_op_s=FermionicOperator(h1=s)
-#s_jw=fer_op_s.mapping('jordan_wigner')
-#print(s_jw.print_operators())
+# MoleculeFlag = 'H2'
+# [r_matrices,fer_op]=mol_r_matrices(MoleculeFlag)
+# # print(r_matrices)
+# # exit()
+# import qutip as qt
+# # r_matrices = r_mats.mol_r_matrices('BF3')
+# r_qt_ob = []
+# for r_matrix in r_matrices:
+#     r_qt_ob.append(qt.Qobj(r_matrix))
+
+# r_mat_diag = qt.simdiag(r_qt_ob)
+# r_mat_evals = r_mat_diag[0]
+# r_mat_evals = r_mat_evals[np.argsort(np.sum(np.where(np.round(r_mat_evals,10)==-1.0,r_mat_evals,np.zeros(np.shape(r_mat_evals))),axis=1))[::-1],:]
+# r_F2 = np.zeros(np.shape(r_mat_evals))
+# for i in range(np.shape(r_mat_evals)[0]):
+# 	for j in range(np.shape(r_mat_evals)[1]):
+# 		if np.round(r_mat_evals[i,j],10)==-1.:
+# 			# print(i,j)
+# 			r_F2[i,j]=1
+
+# # import pdb; pdb.set_trace()
+# r_F21 = np.zeros([np.shape(r_F2)[0]+1,np.shape(r_F2)[1]])
+# r_F21[0:np.shape(r_F2)[0],:] = r_F2
+# r_F21[np.shape(r_F2)[0],:]=np.ones(np.shape(r_F2)[1])
+
+# r_mat_evals = Operator.row_echelon_F2(r_F21)
+
+# r_mat_ev_z = np.sum(r_mat_evals,1)
+# r_mat_evals = np.delete(r_mat_evals, np.where(r_mat_ev_z==0),axis=0)
+# print(r_mat_evals)
+# # import pdb; pdb.set_trace()
+# v_matrix=np.hstack([r_mat_diag[1][i].data.toarray() for i in range(np.shape(fer_op.h1)[0])])
+# # print(v_matrix)
+
+
+# print("checking the v matrix...")
+# is_identity = np.allclose(np.dot(v_matrix, v_matrix.conj().T), np.identity(fer_op.modes))
+# print("v matrix is {} unitary.".format("" if is_identity else "NOT"))
+# temp_fer_op = copy.deepcopy(fer_op)
+# temp_fer_op.transform(v_matrix)
+# v_qubit_op = temp_fer_op.mapping(map_type='jordan_wigner')
+
+# sym_list = []
+# for i in range(np.shape(r_mat_evals)[0]):
+# 	sym_str = ''
+# 	for j in range(np.shape(r_mat_evals)[1]):
+# 		if np.round(r_mat_evals[i,j],10)==1.:
+# 			sym_str+='Z'
+# 		else:
+# 			sym_str+='I'
+# 	sym_pauli = Pauli.from_label(sym_str[::-1])
+# 	sym_list.append(sym_pauli)
+
+# print("check the commutativity of the found symmetry paulis between H'.")
+# for symm in sym_list:
+# 	symm_op = Operator(paulis=[[1.0, symm]])
+# 	is_commuted = check_commute(symm_op, v_qubit_op)
+# 	print(symm_op.print_operators())
+# 	print("symm is {} commuted.".format("" if is_commuted else "NOT"))
+
+# X_list = []
+# X_op_lis = []
+# uni_transf = []
+# for i in range(np.shape(r_mat_evals)[0]):
+# 	Z_ind = np.where(np.round(r_mat_evals[i,:],10)==1)
+# 	# X_array=np.array(X_list)
+# 	# print(Z_ind)
+# 	for j in range(np.shape(Z_ind[0])[0]):
+# 		try :
+# 			X_list.index(Z_ind[0][j])
+# 		except ValueError:
+# 			X_list.append(Z_ind[0][j])
+# 			# import pdb; pdb.set_trace()
+# 			# print(Z_ind[0][j])
+# 			X_str = 'I'*int(Z_ind[0][j])+'X'+'I'*int((np.shape(fer_op.h1)[0]-1-Z_ind[0][j]))
+# 			X_pauli = Pauli.from_label(X_str[::-1])
+# 			X_op = Operator(paulis=[[1.0, X_pauli]])
+# 			X_op_lis.append(X_op)
+# 			Z_op = Operator(paulis=[[1.0, sym_list[i]]])
+# 			U_op = X_op +  Z_op
+# 			U_op.scaling_coeff(1.0 / np.sqrt(2))
+# 			# print(U_op.print_operators())
+# 			uni_transf.append(U_op)
+# 			# print(X_str)
+# 			break
+# X_1=[]
+# for i in X_list:
+# 	X_1.append(13-i)
+# # print(X_list)
+# # print(X_1)
+# # def diff(first, second):
+# #         second = set(second)
+# #         return [item for item in first if item not in second]
+# # print(diff(X_1,X_list))
+# # print(X_1)
+# # print([X_list[2]])
+
+# # import pdb; pdb.set_trace()
+# should_be_i = U_op*U_op
+# # print(should_be_i.print_operators())
+# tapered_qubit_op = Operator.qubit_tapering(v_qubit_op, uni_transf, X_list, [1.,1.,1.,1.,1.])
+# # print(tapered_qubit_op.print_operators())
 
 
 
-#sim_dia.append(qt.Qobj(g_matrix))        
 
 
-#sqr.mapping_with_symmetry_reduction_new(fer_op,si)
+
+
+
+
+
+
+
+
+
+
