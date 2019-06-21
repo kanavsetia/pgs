@@ -203,7 +203,17 @@ if __name__ == '__main__':
 
     mol.build()
     _q_ = qmol_func(mol, atomic=True)
-    fer_op = FermionicOperator(h1=_q_.one_body_integrals, h2=_q_.two_body_integrals)
+    if is_atomic:
+        two_body_temp = QMolecule.twoe_to_spin(_q_.mo_eri_ints)
+        mol = gto.M(atom=atom, basis='sto-3g')
+
+        O = get_ovlp(mol)
+        X = np.kron(np.identity(2), np.linalg.inv(scipy.linalg.sqrtm(O)))
+
+        fer_op = FermionicOperator(h1=_q_.one_body_integrals, h2=two_body_temp)
+        fer_op.transform(X)
+    else:
+        fer_op = FermionicOperator(h1=_q_.one_body_integrals, h2=_q_.two_body_integrals)
 
     print("checking r matrices...")
     for r_matrix in r_matrices:
