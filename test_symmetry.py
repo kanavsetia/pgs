@@ -13,180 +13,13 @@ import scipy
 
 from symmetries import find_symmetry_ops
 import r_mat_for_mols as r_mats
-from qiskit.chemistry.mole_geo_symmetry.int_func import qmol_func
+from int_func import qmol_func
 
-# try_h2o = False
-# try_l_h2o = False
-# try_h2 = True
-# r_matrices = []
+# atom = "O .0 .0 .0; H .757 .586 .0; H -.757 .586 .0"
+# atom = "O .0 .0 .0; H 1. .0 .0; H -1. .0 .0"
+atom = 'H 0 0 0; H 0 0 .7414'
 
-# if try_h2o:
-#     # atom = "O .0 .0 .0; H .757 .586 .0; H -.757 .586 .0"
-#     atom = [['O', (0.0, 0.0, 0.0)], ['H', (.757, .586, 0)], ['H', (-.757, .586, 0.0)]]
-
-#     # r = np.zeros((14, 14))
-#     # # Spin symmetry:
-#     # for i in range(14):
-#     #    if i<7:
-#     #        r[i+7,i]=1.
-#     #    else:
-#     #        r[i-7,i]=1.
-#     # r_matrices.append(r)
-
-#     # R-matrix for plane of symmetry \sigma_{xy}. Everything remains the same, only pz-orbitals pick up negative sign.
-#     r = np.eye(14)
-#     r[4, 4] = -1
-#     r[11, 11] = -1
-#     r_matrices.append(r)
-
-#     # R-matrix for plane of symmetry \sigma_{yz}. Everything remains the same, only px-orbitals pick up negative sign and the hydrogen atoms swap.
-#     r = np.eye(14)
-#     r[2, 2] = -1
-#     r[9, 9] = -1
-#     r[12, 12] = 0
-#     r[13, 13] = 0
-#     r[12, 13] = 1
-#     r[13, 12] = 1
-#     r[5, 6] = 1
-#     r[6, 5] = 1
-#     r[5, 5] = 0
-#     r[6, 6] = 0
-#     r_matrices.append(r)
-
-#     # Axial symmetry about y-axis
-#     # r=np.zeros([14,14])
-#     # r[0,0]=1
-#     # r[1,1]=1
-#     # r[2,2]=-1
-#     # r[3,3]=1
-#     # r[4,4]=-1
-#     # r[5,6]=1
-#     # r[6,5]=1
-#     # r[7,7]=1
-#     # r[8,8]=1
-#     # r[9,9]=-1
-#     # r[10,10]=1
-#     # r[11,11]=-1
-#     # r[12,13]=1
-#     # r[13,12]=1
-#     # r_matrices.append(r)
-
-# if try_l_h2o:
-#     # atom = "O .0 .0 .0; H 1. .0 .0; H -1. .0 .0"
-#     atom = [['O',(0.0, 0.0,0.0)],['H',(1, 0, 0)], ['H',(-1.0,0.0,0.0)]]
-#     # R-matrix for plane of symmetry \sigma_{xy}. Everything remains the same, only pz-orbitals pick up negative sign.
-#     r = np.eye(14)
-#     r[4, 4] = -1
-#     r[11, 11] = -1
-#     r_matrices.append(r)
-#     # R-matrix for plane of symmetry \sigma_{xz}. Everything remains the same, only py-orbitals pick up negative sign.
-#     r = np.eye(14)
-#     r[3, 3] = -1
-#     r[10, 10] = -1
-#     r_matrices.append(r)
-
-#     # R-matrix for plane of symmetry \sigma_{yz}. Everything remains the same, only px-orbitals pick up negative sign and hydrogen atoms swap.
-#     r=np.zeros([14,14])
-#     r[0,0]=1
-#     r[1,1]=1
-#     r[2,2]=-1
-#     r[3,3]=1
-#     r[4,4]=1
-#     r[5,6]=1
-#     r[6,5]=1
-#     r[7,7]=1
-#     r[8,8]=1
-#     r[9,9]=-1
-#     r[10,10]=1
-#     r[11,11]=1
-#     r[12,13]=1
-#     r[13,12]=1
-#     r_matrices.append(r)
-
-#     # # R-matrix for symmetry-axis C_2. Linear water molecule has three axis of symmetry:
-#     # # About z-axis
-#     # r = np.zeros((14,14))
-#     # r[0,0]=1
-#     # r[1,1]=1
-#     # r[2,2]=-1
-#     # r[3,3]=-1
-#     # r[4,4]=1
-#     # r[5,6]=1
-#     # r[6,5]=1
-#     # r[7,7]=1
-#     # r[8,8]=1
-#     # r[9,9]=-1
-#     # r[10,10]=-1
-#     # r[11,11]=1
-#     # r[12,13]=1
-#     # r[13,12]=1
-#     # r_matrices.append(r)
-#     # # About y-axis
-#     # r = np.zeros((14,14))
-#     # r[0,0]=1
-#     # r[1,1]=1
-#     # r[2,2]=-1
-#     # r[3,3]=1
-#     # r[4,4]=-1
-#     # r[5,6]=1
-#     # r[6,5]=1
-#     # r[7,7]=1
-#     # r[8,8]=1
-#     # r[9,9]=-1
-#     # r[10,10]=1
-#     # r[11,11]=-1
-#     # r[12,13]=1
-#     # r[13,12]=1
-#     # r_matrices.append(r)
-#     # #Symmetry about x-axis:
-#     # r = np.zeros((14,14))
-#     # r[0, 0] = 1
-#     # r[1, 1] = 1
-#     # r[2, 2] = 1
-#     # r[3, 3] = -1
-#     # r[4, 4] = -1
-#     # r[5, 5] = 1
-#     # r[6, 6] = 1
-#     # r[7, 7] = 1
-#     # r[8, 8] = 1
-#     # r[9, 9] = 1
-#     # r[10, 10] = -1
-#     # r[11, 11] = -1
-#     # r[12, 12] = 1
-#     # r[13, 13] = 1
-#     # r_matrices.append(r)
-
-#     #Spin symmetry:
-#     # r = np.zeros((14, 14))
-#     # for i in range(14):
-#     #     if i < 7:
-#     #         r[i+7,i]= 1.
-#     #     else:
-#     #         r[i-7,i] = 1.
-#     # r_matrices.append(r)
-
-# if try_h2:
-#     # atom = 'H 0 0 0; H 0 0 .7414'
-#     atom = [['H', (.0, .0, .0)], ['H', (.0, .0, 0.7414)]]
-#     # Defining R-matrix --> r
-#     # Swapping the spatial orbitals. This involves swapping both the spin orbitals corresponding to a spatial orbital.
-#     # r = np.zeros((4, 4))
-#     # r[0,1]=1
-#     # r[1,0]=1
-#     # r[2,3]=1
-#     # r[3,2]=1
-#     # r_matrices.append(r)
-
-#     # Swapping the spin orbitals. Spin symmetry.
-#     r=np.zeros((4,4))
-#     for i in range(4):
-#         if i < 2:
-#             r[i + 2, i] = 1.
-#         else:
-#             r[i - 2, i] = 1.
-#     r_matrices.append(r)
-
-r_matrices = r_mats.mol_r_matrices('BF3')
+r_matrices = r_mats.mol_r_matrices('H2', True)
 
 def check_commute(op1, op2):
     op3 = op1 * op2 - op2 * op1
@@ -201,8 +34,9 @@ if __name__ == '__main__':
     mol.basis = 'sto-3g'
     # mol.basis = {'O': 'sto-3g', 'H': 'cc-pvdz', 'H&#64;2': '6-31G'}
 
+    is_atomic = True
     mol.build()
-    _q_ = qmol_func(mol, atomic=True)
+    _q_ = qmol_func(mol, atomic=is_atomic)
     if is_atomic:
         two_body_temp = QMolecule.twoe_to_spin(_q_.mo_eri_ints)
         mol = gto.M(atom=atom, basis='sto-3g')
@@ -214,6 +48,14 @@ if __name__ == '__main__':
         fer_op.transform(X)
     else:
         fer_op = FermionicOperator(h1=_q_.one_body_integrals, h2=_q_.two_body_integrals)
+
+    ref_op = fer_op.mapping('jordan_wigner')
+
+    ee = ExactEigensolver(ref_op, k=1)
+    ee_result = ee.run()
+    temp_min_eigvals = ee_result['eigvals']
+    print(temp_min_eigvals)
+    exit(0)
 
     print("checking r matrices...")
     for r_matrix in r_matrices:
