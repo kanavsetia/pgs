@@ -5,7 +5,8 @@ Installation
 1. Install the following packages from the source codes (the master branch):
  - qiskit-aqua
  - qiskit-chemistry
- - qiskit-terra (?)
+ - qiskit-terra
+ - qiskit-ignis
  
 2. Clone this repo under qiskit_chemistry/qiskit/chemistry/
 
