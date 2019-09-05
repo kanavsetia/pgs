@@ -19,6 +19,7 @@ import numpy as np
 # from qiskit.chemistry import FermionicOperator
 from qiskit.chemistry import FermionicOperator
 logger = logging.getLogger(__name__)
+from pyscf.scf.hf import get_ovlp
 
 
 def _calculate_integrals(mol, calc_type='rhf', atomic=False):
@@ -62,17 +63,40 @@ def _calculate_integrals(mol, calc_type='rhf', atomic=False):
 
     norbs = mo_coeff.shape[0]
     orbs_energy = mf.mo_energy
+    # print(np.dot(mo_coeff,mo_coeff.T))
+    O = get_ovlp(mol)
+    # print(np.dot(O,O.T))
+    mo_tr = np.dot(np.dot(O,mo_coeff),O.T)
+
+    # print(np.dot(mo_tr,mo_tr.T))
+
+    # two_body_temp = QMolecule.twoe_to_spin(_q_.mo_eri_ints)
+    # temp_int = np.einsum('ijkl->ljik', _q_.mo_eri_ints)
+    # two_body_temp = QMolecule.twoe_to_spin(temp_int)
+    # mol = gto.M(atom=mol.atom, basis='sto-3g')
+
+    # X = np.kron(np.identity(2), np.linalg.inv(scipy.linalg.sqrtm(O)))
+
+
+
 
     ### for atomic basis
     if atomic:
         mo_coeff = np.identity(len(mo_coeff))
     ###
-
+    # print(mo_coeff)
     hij = mf.get_hcore()
     mohij = np.dot(np.dot(mo_coeff.T, hij), mo_coeff)
+    # mohij = hij
 
     eri = ao2mo.incore.full(mf._eri, mo_coeff, compact=False)
+    # eri_1 = mf._eri
+    # print(np.shape(eri))
+    # print(np.shape(eri_1))
     mohijkl = eri.reshape(norbs, norbs, norbs, norbs)
+    
+    # exit()
+
 
     # dipole integrals
     mol.set_common_orig((0, 0, 0))

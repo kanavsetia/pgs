@@ -39,6 +39,8 @@ if __name__ == '__main__':
     _q_ = qmol_func(mol, atomic=is_atomic)
     if is_atomic:
         two_body_temp = QMolecule.twoe_to_spin(_q_.mo_eri_ints)
+        temp_int = np.einsum('ijkl->ljik', _q_.mo_eri_ints)
+        two_body_temp = QMolecule.twoe_to_spin(temp_int)
         mol = gto.M(atom=atom, basis='sto-3g')
 
         O = get_ovlp(mol)
@@ -48,9 +50,13 @@ if __name__ == '__main__':
         fer_op.transform(X)
     else:
         fer_op = FermionicOperator(h1=_q_.one_body_integrals, h2=_q_.two_body_integrals)
+    
+    # s = np.shape(fer_op.h1)
+    # fer_op.h1 = np.zeros(s)
+    # print(fer_op.h1)
 
     ref_op = fer_op.mapping('jordan_wigner')
-
+    print(ref_op.print_operators())
     ee = ExactEigensolver(ref_op, k=1)
     ee_result = ee.run()
     temp_min_eigvals = ee_result['eigvals']
