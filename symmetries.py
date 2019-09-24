@@ -3,7 +3,7 @@ import itertools
 
 import numpy as np
 from scipy import linalg as scila
-from qiskit.aqua import Operator
+# from qiskit.aqua import Operator
 import qutip as qt
 from qiskit.quantum_info import Pauli
 import pdb

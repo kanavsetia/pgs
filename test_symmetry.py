@@ -2,7 +2,7 @@ import copy
 import itertools
 
 import numpy as np
-from qiskit.aqua import Operator
+# from qiskit.aqua import Operator
 from qiskit.chemistry import FermionicOperator, QMolecule
 from qiskit.chemistry.drivers import PySCFDriver, UnitsType
 from qiskit.aqua.algorithms import ExactEigensolver
@@ -19,7 +19,7 @@ from int_func import qmol_func
 # atom = "O .0 .0 .0; H 1. .0 .0; H -1. .0 .0"
 atom = 'H 0 0 0; H 0 0 .7414'
 
-r_matrices = r_mats.mol_r_matrices('H2', True)
+[r_matrices,fer_op1, num_particles]= r_mats.mol_r_matrices('H2', False,False)
 
 def check_commute(op1, op2):
     op3 = op1 * op2 - op2 * op1
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     mol.basis = 'sto-3g'
     # mol.basis = {'O': 'sto-3g', 'H': 'cc-pvdz', 'H&#64;2': '6-31G'}
 
-    is_atomic = True
+    is_atomic = False
     mol.build()
     _q_ = qmol_func(mol, atomic=is_atomic)
     if is_atomic:
