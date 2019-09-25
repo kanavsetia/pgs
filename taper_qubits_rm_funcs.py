@@ -15,7 +15,7 @@ from qiskit.chemistry import FermionicOperator
 logger = logging.getLogger(__name__)
 import int_func
 import time
-from r_mat_for_mols_old import mol_r_matrices, check_commute
+from r_mat_for_mols import mol_r_matrices, check_commute
 from qiskit.chemistry.aqua_extensions.components.initial_states import HartreeFock
 from qiskit.chemistry.aqua_extensions.components.variational_forms import UCCSD
 from qiskit.aqua.components.optimizers import COBYLA
@@ -219,7 +219,7 @@ def qubit_tapering(operator, cliffords, sq_list, tapering_values):
 if __name__ == "__main__":
 
 	AO = True
-	Molecule = 'NH3'
+	Molecule = 'BeH2'
 	run_vqe = False
 	check_ref_energy = True
 	if AO == True:
