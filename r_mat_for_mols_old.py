@@ -12,21 +12,17 @@ from pyscf import gto, scf, ao2mo
 from pyscf.lib import param
 from scipy import linalg as scila
 from pyscf.lib import logger as pylogger
-# from qiskit.chemistry import AquaChemistryError
 from qiskit.chemistry import QMolecule
 import numpy as np
 from qiskit.aqua import Operator
 from qiskit.aqua.algorithms import ExactEigensolver
-# import gse_algo as ga
 import scipy
 from pyscf.scf.hf import get_ovlp
 from symmetries import find_symmetry_ops
 from qiskit.chemistry import FermionicOperator
 from int_func import qmol_func
-
 logger = logging.getLogger(__name__)
 import int_func
-# from taper_qubits_rm_funcs import r_mat_funcs as np.set_printoptions(linewidth=230,suppress=True,precision=3,threshold=5000)
 
 def mol_r_matrices(MoleculeFlag,check_r_matrix_flag,is_atomic):
 
@@ -378,20 +374,10 @@ def mol_r_matrices(MoleculeFlag,check_r_matrix_flag,is_atomic):
 				one_b = data['one_b']
 				two_b = data['two_b']
 			except IOError:
-				# mol.atom = [['N', (0.0000,  0.0000, 0.0000)],   
-				# 		['H', (0.0000,	-0.937749230871452,-0.3816)],  
-				# 		['H', (0.8121,	0.4689	,-0.3816)],  
-				# 		['H', (-0.8121,	0.4689	,-0.3816)]]
 				mol.atom = [['N' ,  ( 0.0000000,    0.0000000,    0.1493220)],
 							['H' ,  ( 0.0000000 ,   0.9474830 ,   -0.3484190)],
 							['H' ,  ( 0.8205440  ,  -0.4737420 ,   -0.3484190)],
 							['H' ,  ( -0.8205440  ,  -0.4737420 ,   -0.3484190)]]
-
-
-				# mol.atom = [['N', (0.0000,  0.0000, 0.0000)],   
-					# ['H', (0.0000,	-1.,-0.3816)],  
-					# ['H', (0.8,	0.6	,-0.3816)],  
-					# ['H', (-0.8,	0.6	,-0.3816)]]		
 				mol.build()
 				_q_=int_func.qmol_func(mol, atomic=True)
 				one_b=_q_.one_body_integrals
@@ -409,14 +395,10 @@ def mol_r_matrices(MoleculeFlag,check_r_matrix_flag,is_atomic):
 			fer_op = FermionicOperator(h1=_q_.one_body_integrals, h2=two_body_temp)
 			fer_op.transform(X)
 		else:
-			mol.atom = [['N', (0.0000,  0.0000, 0.0000)],   
-					['H', (0.0000,	-0.9377,-0.3816)],  
-					['H', (0.8121,	0.4689	,-0.3816)],  
-					['H', (-0.8121,	0.4689	,-0.3816)]]
-			mol.atom = [['N', (0.0000,  0.0000, 0.0000)],   
-					['H', (0.0000,	-1.,-0.3816)],  
-					['H', (0.8,	0.6	,-0.3816)],  
-					['H', (-0.8,	0.6	,-0.3816)]]					
+			mol.atom = [['N' ,  ( 0.0000000,    0.0000000,    0.1493220)],
+						['H' ,  ( 0.0000000 ,   0.9474830 ,   -0.3484190)],
+						['H' ,  ( 0.8205440  ,  -0.4737420 ,   -0.3484190)],
+						['H' ,  ( -0.8205440  ,  -0.4737420 ,   -0.3484190)]]
 			mol.build()
 			_q_=int_func.qmol_func(mol, atomic=is_atomic)
 			one_b=_q_.one_body_integrals
@@ -426,43 +408,7 @@ def mol_r_matrices(MoleculeFlag,check_r_matrix_flag,is_atomic):
 
 		one_b = fer_op.h1
 		two_b = fer_op.h2
-
-
-		
 		r_matrices=[]
-		
-		# mol.atom = [['N', (0.0000,  0.0000, 0.0000)],   
-		# 			['H', (-0.4417, 0.2906, 0.8711)],  
-		# 			['H', (0.7256,  0.6896,-0.1907)],  
-		# 			['H', (0.4875, -0.8701, 0.2089)]]
-		# mol.atom = [['N', (0.0000,  0.0000, 0.0000)],   
-		# 			['H', (0.0000,	-0.9377,-0.3816)],  
-		# 			['H', (0.8121,	0.4689	,-0.3816)],  
-		# 			['H', (-0.8121,	0.4689	,-0.3816)]]
-
-		# mol.atom = [['N', (0.0000,  0.0000, 0.0000)],   
-		# 			['H', (-0.663054, -0.663054, -0.3816)],  
-		# 			['H', ( 0.905804, -0.242679, -0.3816)],  
-		# 			['H', (-0.242679,  0.905804, -0.3816)]]
-		
-
-		# mol.atom = [['N', (0.0000,  0.0000, 0.0000)],  
-		# 			['H', (-0.8121,	0.4689	,-0.3816)],   
-		# 			['H', (0.0000,	-0.9377,	-0.3816)],  
-		# 			['H', (0.8121,	0.4689	,-0.3816)]]
-
-		# theta = 2*np.pi/3
-		# rot_mat_vec = np.array([[np.cos(theta),np.sin(theta),0],[-np.sin(theta), np.cos(theta),0],[0,0,1]])
-		# R3 = np.eye(16)
-		# Id = np.eye(16)
-		# R3[2:5,2:5]=rot_mat_vec
-		
-		# mol.symmetry=True
-		# mol.symmetry_subgroup
-		# mol.basis='sto-3g'
-		# mol.basis = {'N': 'cc-pvdz', 'H': 'sto-3g'}
-
-		
 		#Spin symmetry:
 		r1=np.zeros([16,16])
 		for i in range(16):
@@ -491,7 +437,10 @@ def mol_r_matrices(MoleculeFlag,check_r_matrix_flag,is_atomic):
 		r3[14,15]=1
 		r3[15,14]=1
 		r_matrices.append(r3)
-		
+		######################################
+		# The following mtrices commute with Hamiltonian
+		# and hence are symmetries, but these cannot be used
+		# to taper off qubits.
 		theta = -2*np.pi/3
 		r4 = np.eye(16)
 		r4[5,5]=r4[6,6]=r4[7,7]=0
@@ -501,18 +450,12 @@ def mol_r_matrices(MoleculeFlag,check_r_matrix_flag,is_atomic):
 		r4[13,14]=r4[14,15]=r4[15,13]=1
 		# r4[14,13]=r4[15,14]=r4[13,15]=1
 		r4[2,2]=r4[3,3]=r4[10,10]=r4[11,11]=np.cos(theta)
-		
 		r4[2,3]=  np.sin(theta)
 		r4[3,2]=  -np.sin(theta)
 		r4[10,11]=np.sin(theta)
 		r4[11,10]=-np.sin(theta)
-		# print(np.dot(r5.T,r5).real)
-		# print(r4)
-		# exit()
 		r5 = r4.copy()
 
-		# print(np.dot(r5.transpose(),r5))
-		# r_matrices.append(r5)
 
 		theta = np.pi/3
 		r4 = np.eye(16,dtype=complex)
@@ -522,39 +465,10 @@ def mol_r_matrices(MoleculeFlag,check_r_matrix_flag,is_atomic):
 		r4[13,14]=r4[14,13]=1
 		r4[2,2]=r4[10,10]=np.cos(theta)
 		r4[3,3]=r4[11,11]=-np.cos(theta)
-
 		r4[2,3]=  np.sin(theta)
 		r4[3,2]=  np.sin(theta)
 		r4[10,11]=np.sin(theta)
 		r4[11,10]=np.sin(theta)
-		
-		# r_matrices.append(r4)
-		# # print(r4)
-		# # exit()
-		# r_matrices.append(r4)
-
-		# x=(np.eye(3)+rot_mat_vec+np.matmul(rot_mat_vec,rot_mat_vec))/3
-		# print(np.matmul(x.transpose(),x))
-		# print((np.eye(3)+rot_mat_vec+np.matmul(rot_mat_vec,rot_mat_vec)))
-		# print(np.real(fer_op.h1[0:int(np.size(fer_op.h1,0)/2),0:int(np.size(fer_op.h1,0)/2)]))
-		
-		# fer_op.transform(1/np.sqrt(3)*(1+R3+np.dot(R3,R3)))
-		# print(np.matmul(R3,R3)+R3)
-		# print(np.matmul(R3.transpose(),R3))
-		# fer_op.transform(r)
-		# print(np.real(fer_op.h1[0:int(np.size(fer_op.h1,0)/2),0:int(np.size(fer_op.h1,0)/2)]))
-		# print(rot_mat_vec)
-		# print(_q_.one_body_integrals)
-		# print(MoleculeFlag)
-		# print(np.real(fer_op.h1))
-		# print(np.real(fer_op.h1-_q_.one_body_integrals))
-		# print(np.matmul(rot_mat_vec,np.array([0.0000,	-0.9377,-0.3816])))
-		# print(np.matmul(rot_mat_vec,np.array([0.8121,	0.4689	,-0.3816])))
-		# print(np.matmul(rot_mat_vec,np.array([-0.8121,	0.4689	,-0.3816])))
-
-		# print(np.all(np.abs(fer_op.h1-_q_.one_body_integrals)<1.e-14))
-		# print(np.all(np.abs(fer_op.h2-_q_.two_body_integrals)<1.e-14))
-		# print(np.linalg.norm(fer_op.h2-_q_.two_body_integrals))
 		if check_r_matrix_flag:
 			if bool(check_r_mat(r_matrices,fer_op,one_b,two_b)):
 				print('All the above matrices work!')
@@ -565,18 +479,11 @@ def mol_r_matrices(MoleculeFlag,check_r_matrix_flag,is_atomic):
 	elif MoleculeFlag=='CH4':
 		# print(MoleculeFlag)
 		
-		# mol.atom=[['C',  (2.5369,    0.0000,    0.0000)],    
-				#   ['H',  (3.0739,    0.3100,    0.0000)],  
-				#   ['H',  (2.0000,   -0.3100,    0.0000)],  
-				#   ['H',  (2.2269,    0.5369,    0.0000)],    
-				#   ['H',  (2.8469,   -0.5369,    0.0000)]]    
-
 		mol.atom=[['C',  (0.0000 ,	0.0000 ,	0.0000 )],    
 				['H',  (0.6276 ,	0.6276 ,	0.6276 )],  
 				['H',  (0.6276 ,	-0.6276,	-0.6276)],  
 				['H',  (-0.6276,	0.6276 ,	-0.6276)],    
 				['H',  (-0.6276,	-0.6276,	0.6276 )]]    
-
 
 		mol.basis='sto-3g'
 		mol.build()
@@ -590,31 +497,6 @@ def mol_r_matrices(MoleculeFlag,check_r_matrix_flag,is_atomic):
 			else:
 				r1[i-9,i]=1.
 		
-		if check_r_matrix_flag:
-			if bool(check_r_mat(r_matrices,fer_op,one_b,two_b)):
-				print('All the above matrices work!')
-	#=================================
-		# Oxygen molecule
-	#=================================
-	elif MoleculeFlag=='O2':
-		# print(MoleculeFlag)
-		
-		mol.atom =[['O', (-1.0000,    0.0000,    0.0000)],
-				['O', (1.0000,    0.0000,    0.0000)]] 
-		mol.basis = 'sto-3g'
-
-		mol.build()
-		_q_=int_func.qmol_func(mol, atomic=True)
-		fer_op = FermionicOperator(h1=_q_.one_body_integrals, h2=_q_.two_body_integrals)
-		# Spin symmetry:
-		r1=np.zeros([10,10])
-		for i in range(10):
-			if i<5:
-				r1[i+5,i]=1.
-			else:
-				r1[i-5,i]=1.
-
-		fer_op.transform(r1)
 		if check_r_matrix_flag:
 			if bool(check_r_mat(r_matrices,fer_op,one_b,two_b)):
 				print('All the above matrices work!')
@@ -744,14 +626,6 @@ def mol_r_matrices(MoleculeFlag,check_r_matrix_flag,is_atomic):
 		r7[24,29]=r7[29,24]=1
 		r_matrices.append(r7)
 
-		##print(r)
-		# print(np.all(r2==r2.transpose()))
-		# fer_op.transform(r7)
-		# # print(_q_._one_body_integrals.round(3))
-		# print(MoleculeFlag)
-		# print(np.all(np.abs(fer_op.h1-_q_.one_body_integrals)<1.e-14))
-		# print(np.all(np.abs(fer_op.h2-_q_.two_body_integrals)<1.e-14))
-		# print(np.linalg.norm(fer_op.h2-_q_.two_body_integrals))
 		if check_r_matrix_flag:
 			if bool(check_r_mat(r_matrices,fer_op,one_b,two_b)):
 				print('All the above matrices work!')
@@ -1595,8 +1469,6 @@ def mol_r_matrices(MoleculeFlag,check_r_matrix_flag,is_atomic):
 		r8[12,13]=1
 		r8[13,12]=1
 		# r_matrices.append(r8)
-
-
 		# r_matrices=[]
 		# r_matrices.append(np.eye(fer_op.modes))
 		if check_r_matrix_flag:
@@ -1621,6 +1493,7 @@ def check_r_mat(r_matrices, fer_op, one_b, two_b):
 				r_true+=1
 				print('True')
 			else:
+				print('The r-matrix does not commute with the Hamiltonian')
 				print(r.real)
 				print(np.real(one_b))
 				print(np.real(temp_fo.h1))
@@ -1635,11 +1508,17 @@ def check_r_mat(r_matrices, fer_op, one_b, two_b):
 		return (r_true==len(r_matrices))
 
 def check_commute(op1, op2):
-		op3 = op1 * op2 - op2 * op1
-		op3.zeros_coeff_elimination()
-		return op3.is_empty()
+	op3 = op1 * op2 - op2 * op1
+	op3.zeros_coeff_elimination()
+	return op3.is_empty()
 
 if __name__ == '__main__':
-    [r_mat,fer,num_part]=mol_r_matrices('NH3',True,True)
+    import sys
+	
+    if len(sys.argv)!=0:
+	    # print(sys.argv[1])
+	    [r_mat,fer,num_part]=mol_r_matrices(sys.argv[1],True,True)
+
+		
     # print(np.all(np.matmul(r_mat[1],r_mat[2])==r_mat[0]))
-print("after __name__ guard")
+# print("after __name__ guard")

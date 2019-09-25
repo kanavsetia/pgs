@@ -219,17 +219,15 @@ def qubit_tapering(operator, cliffords, sq_list, tapering_values):
 if __name__ == "__main__":
 
 	AO = True
-	MF = 'BeH2'
-
+	Molecule = 'NH3'
 	run_vqe = False
 	check_ref_energy = True
 	if AO == True:
-		x = r_mat_funcs(MF, True,True)
-
+		x = r_mat_funcs(Molecule, True,True)
 		[r_mat_evals,v_matrix] = x.sim_diag(x.r_matrices)
-		# print(v_matrix.real)
+		
 		# This renumbering of r_matrices and v_matrix is just for the specific case of BeH2
-		if MF == 'BeH2':
+		if Molecule == 'BeH2':
 			V_tr = np.zeros([14,14])
 			V_tr[0,0]=V_tr[1,1]=V_tr[2,6]=V_tr[3,10]=V_tr[4,12]=V_tr[5,2]=V_tr[6,7]= 1
 			V_tr[7,4]=V_tr[8,5]=V_tr[9,9]=V_tr[10,11]=V_tr[11,13]=V_tr[12,3]=V_tr[13,8]= 1
@@ -240,7 +238,6 @@ if __name__ == "__main__":
 			r1 = np.dot(r1,V_tr.T)
 			r_mat_evals = r1[0:4,:]
 		#################################################
-
 		# print(v_matrix.real)
 		# ############Print v-matrix for latex########
 		# v_matrix = v_matrix.round(3)
@@ -251,7 +248,6 @@ if __name__ == "__main__":
 		# 		if j!=int(np.shape(v_matrix)[0])-1:
 		# 			v_mat_str+=' & '
 		# 	v_mat_str+= ' \\\ \n '
-
 		# print(v_mat_str)	
 		#################################################
 
@@ -261,25 +257,23 @@ if __name__ == "__main__":
 		v_qubit_op = x.sym_transf_ham_qub_op(v_matrix)
 		# [symmetries, sq_paulis, cliffords, sq_list] = qub_op.find_Z2_symmetries()
 		[symmetries, sq_paulis, cliffords, sq_list] = v_qubit_op.find_Z2_symmetries()
-		
-
 		print('Z2 symmetries found:')
 		for symm in symmetries:
 			print(symm.to_label())
 			sym_la = symm.to_label()[::-1]
 			ind = [i for i, a in enumerate(sym_la) if a == 'Z']
 			print(ind)
-		print('single qubit operators found:')
-		exit()
 
-
-
-
+		# Number of terms in the Hamiltonian (qubit operator representation)
 		qub_op.zeros_coeff_elimination()
 		print('Number of terms in the Hamiltonian in AO basis')
 		print(len(qub_op._paulis))
 
-		#Checkin to make sure everything works
+		#Printing the number of terms in the Hamiltonian
+		print('Final number of terms in the Hamiltonian in AO basis after the transformation')
+		print(len(v_qubit_op._paulis))
+
+		# Exact diagonalization as a sanity check
 		if check_ref_energy ==True:
 			ee = ExactEigensolver(qub_op, k=1)
 			ee_result = ee.run()
@@ -287,12 +281,7 @@ if __name__ == "__main__":
 			# This is the reference value from Hamiltonian in AO basis
 			print('Eigen value of the full Ham in AO basis')
 			print(ref_min_eigvals)
-			# exit()
-			# input()
 
-		#Printing the number of terms in the Hamiltonian
-		print('Final number of terms in the Hamiltonian in AO basis after the transformation')
-		print(len(v_qubit_op._paulis))
 		# The set of symmetries is not independent, so, the following code gets the independent set of symmetries.
 		r_mat_evals = x.ind_symm_r_ev_mat(r_mat_evals)
 		sym_list = x.get_symm_list(r_mat_evals)
@@ -303,23 +292,15 @@ if __name__ == "__main__":
 			symm_op = Operator(paulis=[[1.0, symm]])
 			is_commuted = check_commute(symm_op, v_qubit_op)
 			print(symm_op.print_operators())
-			# symm_op.to_matrix()
-			# print('Trace of the operators')
-			# print(np.trace(symm_op._matrix.todense()))
 			sym_la = symm.to_label()[::-1]
 			ind = [i for i, a in enumerate(sym_la) if a == 'Z']
 			print(ind)
 			print("symm is {} commuted.".format("" if is_commuted else "NOT"))
 
-		# exit()
 		# Get the unitary operators (cliffords) corresponding the single qubit string.
-
 		[cliffords, single_qubit_list] = x.get_cliffords(r_mat_evals,sym_list)
 		print('Following are the qubits which are tappered off.')
 		print(single_qubit_list)
-
-		# exit()
-
 
 		print("Trying to tapering")
 		correct_sector = None
@@ -355,43 +336,23 @@ if __name__ == "__main__":
 							num_time_slices=1,
 							#    )
 							cliffords=cliffords, sq_list=single_qubit_list, tapering_values=correct_sector, symmetries=sym_list)
-
 			# var_form = RYRZ(num_qubits=qub_op.num_qubits- len(single_qubit_list), depth=30,entanglement='linear')
 			# print(type(var_form))
 			# setup optimizer
 			optimizer = COBYLA(maxiter=2000)
-			# import pdb; pdb.set_trace()
-			# set vqe
+			# setup vqe
 			algo = VQE(tapered_qubit_op, var_form, optimizer, 'matrix')
-
 			# setup backend
 			backend = BasicAer.get_backend('statevector_simulator')
 			quantum_instance = QuantumInstance(backend=backend)
-
-
 			algo_result = algo.run(quantum_instance)
-
-
 			print(algo_result['energy'])
-
 
 	################## MO basis##############################################
 	else:
-		x = r_mat_funcs(MF, False,False)
-
-		# [r_mat_evals,v_matrix] = x.sim_diag(x.r_matrices)
-		# r = np.eye(14)
-		# r[4,4]=r[11,11]=-1
-		# print(r)
-		# one_b = x.fer_op.h1
-		# two_b = x.fer_op.h2
-		# etol = 1.e-12
-		# x.fer_op.transform(r)
-		# print(np.all(np.abs(x.fer_op.h1-one_b)<etol) and np.all(np.abs(x.fer_op.h2-two_b)<etol))
-		# Getting and transforming the Ham with V matrix.
+		x = r_mat_funcs(Molecule, False,False)
 		qub_op = x.fer_op.mapping('jordan_wigner')
 		print(len(qub_op._paulis))
-		# exit()
 		if check_ref_energy:
 		#Checkin to make sure everything works
 			ee = ExactEigensolver(qub_op.copy(),k=1)
@@ -461,15 +422,12 @@ if __name__ == "__main__":
 			# print(type(var_form))
 			# setup optimizer
 			optimizer = COBYLA(maxiter=1500)
-			# import pdb; pdb.set_trace()
-			# set vqe
+			# setup vqe
 			algo = VQE(tapered_qubit_op, var_form, optimizer, 'matrix')
 
 			# setup backend
 			backend = BasicAer.get_backend('statevector_simulator')
 			quantum_instance = QuantumInstance(backend=backend)
-
 			algo_result = algo.run(quantum_instance)
-
 			print(algo_result['energy'])
 

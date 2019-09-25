@@ -1,14 +1,9 @@
-# mole_geo_symmetry
+# Tapering off qubits using the point group symmetries.
 
-Installation
+This repository contains the code based on qiskit for tapering off qubits using point group symmetries.
 
-1. Install the following packages from the source codes (the master branch):
- - qiskit-aqua
- - qiskit-chemistry
- - qiskit-terra
- - qiskit-ignis
- 
-2. Clone this repo under qiskit_chemistry/qiskit/chemistry/
+It uses qiskit-0.11.0 which can be installed by:
 
+```pip3 install qiskit==0.11.0```
 
-3. Run the `test_symmetry.py`
+There is a demo jupyter notebook `tapering_using_point_group_symmetries` that may be helpful in understanding the procedure.
