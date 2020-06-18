@@ -8,7 +8,9 @@ from scipy import linalg as scila
 from pyscf.lib import logger as pylogger
 from qiskit.chemistry import QMolecule
 import numpy as np
-from qiskit.aqua import Operator
+# from qiskit.aqua import Operator
+from qiskit.aqua.operators import WeightedPauliOperator as Operator
+
 from qiskit.aqua.algorithms import ExactEigensolver
 import qutip as qt
 from qiskit.chemistry import FermionicOperator
@@ -16,17 +18,23 @@ logger = logging.getLogger(__name__)
 import int_func
 import time
 from r_mat_for_mols import mol_r_matrices, check_commute
-from qiskit.chemistry.aqua_extensions.components.initial_states import HartreeFock
-from qiskit.chemistry.aqua_extensions.components.variational_forms import UCCSD
+# from qiskit.chemistry.aqua_extensions.components.initial_states import HartreeFock
+# from qiskit.chemistry.aqua_extensions.components.variational_forms import UCCSD
+from qiskit.chemistry.components.initial_states import HartreeFock
+from qiskit.chemistry.components.variational_forms import UCCSD
+
 from qiskit.aqua.components.optimizers import COBYLA
 from qiskit.aqua.components.variational_forms import RYRZ
-from qiskit.aqua.algorithms.adaptive import VQE
+# from qiskit.aqua.algorithms.adaptive import VQE
+from qiskit.aqua.algorithms import VQE
+# from qiskit.aqua.adaptive import VQE
 from qiskit import BasicAer
-from qiskit.aqua import Operator, set_qiskit_aqua_logging, QuantumInstance
+from qiskit.aqua import set_qiskit_aqua_logging, QuantumInstance
 np.set_printoptions(linewidth=230,suppress=True,precision=3,threshold=5000)
 from qiskit.aqua import set_qiskit_aqua_logging
 import logging
 set_qiskit_aqua_logging(logging.INFO)
+from qiskit.aqua.operators.legacy import *
 
 class r_mat_funcs():
 
@@ -71,8 +79,7 @@ class r_mat_funcs():
 		r_F21[np.shape(r_F2)[0],:]=np.ones(np.shape(r_F2)[1])
 		# r_F21 = r_F2
 		# print(r_F21)
-
-		r_mat_evals = Operator.row_echelon_F2(r_F21)
+		r_mat_evals = row_echelon_F2(r_F21)
 		# print(r_mat_evals)
 		r_mat_ev_z = np.sum(r_mat_evals,1)
 		r_mat_evals = np.delete(r_mat_evals, np.where(r_mat_ev_z==0),axis=0)
@@ -98,8 +105,10 @@ class r_mat_funcs():
 		return sym_list
 	
 	def get_cliffords(self, r_mat_evals, sym_list):
+#         import qiskit.aqua.operators.legacy.WeightedPauliOperator as WPO
 		X_list = []
-		X_op_lis = []
+		X_op_lis = [] 
+		X_pauli_lis = [] 
 		uni_transf = []
 		Z_ind_list = []
 		
@@ -133,17 +142,18 @@ class r_mat_funcs():
 					# print(Z_ind[0][j])
 					X_str = 'I'*int(Z_ind[0][j])+'X'+'I'*int((self.fer_op.modes-1-Z_ind[0][j]))
 					X_pauli = Pauli.from_label(X_str[::-1])
+					X_pauli_lis.append(X_pauli)
 					X_op = Operator(paulis=[[1.0, X_pauli]])
 					X_op_lis.append(X_op)
 					Z_op = Operator(paulis=[[1.0, sym_list[i]]])
 					U_op = X_op +  Z_op
-					U_op.scaling_coeff(1.0 / np.sqrt(2))
+					U_op=U_op*(1.0 / np.sqrt(2))
 					# print(U_op.print_operators())
 					uni_transf.append(U_op)
 					# print(X_str)
 					should_be_i = U_op*U_op
 					break
-		return [uni_transf, X_list]
+		return [uni_transf, X_list, X_pauli_lis]
 
 	def get_tapered_qubit_op(self, v_qubit_op, uni_transf, X_list, tapper_coeffs):
 		tapered_qubit_op = Operator.qubit_tapering(v_qubit_op, uni_transf, X_list, tapper_coeffs)
@@ -298,7 +308,7 @@ if __name__ == "__main__":
 			print("symm is {} commuted.".format("" if is_commuted else "NOT"))
 
 		# Get the unitary operators (cliffords) corresponding the single qubit string.
-		[cliffords, single_qubit_list] = x.get_cliffords(r_mat_evals,sym_list)
+		[cliffords, single_qubit_list, X_pauli_list] = x.get_cliffords(r_mat_evals,sym_list)
 		print('Following are the qubits which are tappered off.')
 		print(single_qubit_list)
 

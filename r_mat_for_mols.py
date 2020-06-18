@@ -14,7 +14,9 @@ from scipy import linalg as scila
 from pyscf.lib import logger as pylogger
 from qiskit.chemistry import QMolecule
 import numpy as np
-from qiskit.aqua import Operator
+# from qiskit.aqua import Operator
+from qiskit.aqua.operators import WeightedPauliOperator as WPO
+
 from qiskit.aqua.algorithms import ExactEigensolver
 import scipy
 from pyscf.scf.hf import get_ovlp
@@ -1509,7 +1511,8 @@ def check_r_mat(r_matrices, fer_op, one_b, two_b):
 
 def check_commute(op1, op2):
 	op3 = op1 * op2 - op2 * op1
-	op3.zeros_coeff_elimination()
+	op3.chop()
+# 	op3.zeros_coeff_elimination()
 	return op3.is_empty()
 
 if __name__ == '__main__':
