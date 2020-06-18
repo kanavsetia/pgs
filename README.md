@@ -2,9 +2,9 @@
 
 This repository contains the code based on qiskit for tapering off qubits using point group symmetries.
 
-It uses qiskit-0.11.0 which can be installed by:
+It uses qiskit-0.19.4 which can be installed by:
 
-```pip3 install qiskit==0.11.0```
+```pip3 install qiskit==0.19.4```
 
 **Python files**
 1. r_mat_for_mols.py contains the code for getting the Hamiltonian for a molecule and constructing the R matrices corresponding to the point group symmetries. It also contains the test code which verifies that the R matrices do commute with the Hamiltonian.
